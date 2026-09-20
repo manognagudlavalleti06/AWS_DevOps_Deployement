@@ -1,4 +1,3 @@
-```yaml
 name: Deploy Lambda and Glue
 
 on:
