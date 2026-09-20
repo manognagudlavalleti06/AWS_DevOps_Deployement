@@ -1,0 +1,125 @@
+```yaml
+name: Deploy Lambda and Glue
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: test-cloudformationtemplate
+  STACK_NAME: DevOps-Lambda-Glue-Stack
+
+jobs:
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # --------------------------------------------------
+      # 1. Checkout GitHub repository
+      # --------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+
+      # --------------------------------------------------
+      # 2. Configure AWS credentials using OIDC
+      # --------------------------------------------------
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # --------------------------------------------------
+      # 3. Create Lambda ZIP package
+      # --------------------------------------------------
+
+      - name: Package Lambda
+        run: |
+          cd test_lambda
+          zip -r ../app.zip app.py
+          cd ..
+
+
+      # --------------------------------------------------
+      # 4. Upload Lambda package to S3
+      # --------------------------------------------------
+
+      - name: Upload Lambda package
+        run: |
+          aws s3 cp app.zip \
+            s3://${S3_BUCKET}/lambda/app-${GITHUB_SHA}.zip
+
+
+      # --------------------------------------------------
+      # 5. Upload Glue Python script to S3
+      # --------------------------------------------------
+
+      - name: Upload Glue script
+        run: |
+          aws s3 cp test_glue/glue.py \
+            s3://${S3_BUCKET}/glue/glue-${GITHUB_SHA}.py
+
+
+      # --------------------------------------------------
+      # 6. Validate CloudFormation template
+      # --------------------------------------------------
+
+      - name: Validate CloudFormation template
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://cloudformation/template.yaml
+
+
+      # --------------------------------------------------
+      # 7. Deploy CloudFormation
+      # --------------------------------------------------
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation/template.yaml \
+            --stack-name ${STACK_NAME} \
+            --parameter-overrides \
+              LambdaS3Key=lambda/app-${GITHUB_SHA}.zip \
+              GlueS3Key=glue/glue-${GITHUB_SHA}.py \
+            --capabilities CAPABILITY_NAMED_IAM
+
+
+      # --------------------------------------------------
+      # 8. Display deployment information
+      # --------------------------------------------------
+
+      - name: Deployment complete
+        run: |
+          echo "========================================"
+          echo "Deployment completed successfully!"
+          echo "========================================"
+
+          aws cloudformation describe-stacks \
+            --stack-name ${STACK_NAME} \
+            --query "Stacks[0].Outputs"
+```
+
+This uses the commit SHA in the S3 object names so each deployment gets a new artifact, for example:
+
+```text
+lambda/app-a83f91....zip
+glue/glue-a83f91....py
+```
+
+That is useful because a new S3 key makes the Lambda/Glue artifact change explicit on every deployment.
+
+Your CloudFormation command also needs `CAPABILITY_NAMED_IAM` because your template creates IAM roles with explicit names such as `DevOpsLambdaRole` and `DevOpsGlueRole`. AWS documents that custom-named IAM resources require `CAPABILITY_NAMED_IAM`.
