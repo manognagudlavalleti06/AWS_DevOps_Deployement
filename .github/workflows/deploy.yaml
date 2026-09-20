@@ -14,7 +14,7 @@ env:
   S3_BUCKET: test-cloudformationtemplate
   STACK_NAME: DevOps-Lambda-Glue-Stack
   LAMBDA_S3_KEY: lambda/app.zip
-  GLUE_S3_KEY: glue/TestGlueJob.py
+  GLUE_S3_KEY: glue/glue.py
 
 jobs:
 
