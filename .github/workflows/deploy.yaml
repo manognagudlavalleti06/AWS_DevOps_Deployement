@@ -110,15 +110,4 @@ jobs:
           aws cloudformation describe-stacks \
             --stack-name ${STACK_NAME} \
             --query "Stacks[0].Outputs"
-```
 
-This uses the commit SHA in the S3 object names so each deployment gets a new artifact, for example:
-
-```text
-lambda/app-a83f91....zip
-glue/glue-a83f91....py
-```
-
-That is useful because a new S3 key makes the Lambda/Glue artifact change explicit on every deployment.
-
-Your CloudFormation command also needs `CAPABILITY_NAMED_IAM` because your template creates IAM roles with explicit names such as `DevOpsLambdaRole` and `DevOpsGlueRole`. AWS documents that custom-named IAM resources require `CAPABILITY_NAMED_IAM`.
