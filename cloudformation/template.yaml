@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Deploy a Lambda function and AWS Glue Python Shell job
+  using CloudFormation.
+
+Parameters:
+
+  LambdaS3Key:
+    Type: String
+    Default: lambda/app.zip
+    Description: S3 key of the Lambda ZIP package
+
+  GlueS3Key:
+    Type: String
+    Default: glue/glue.py
+    Description: S3 key of the Glue Python script
+
+
+Resources:
+
+  # -------------------------------------------------------
+  # IAM ROLE FOR LAMBDA
+  # -------------------------------------------------------
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'DevOpsLambdaRole'
+
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+
+  # -------------------------------------------------------
+  # LAMBDA FUNCTION
+  # -------------------------------------------------------
+
+  TestLambdaFunction:
+    Type: AWS::Lambda::Function
+
+    Properties:
+      FunctionName: 'TestLambda'
+
+      Runtime: python3.12
+
+      Handler: app.lambda_handler
+
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+      Code:
+        S3Bucket: test-cloudformationtemplate
+        S3Key: !Ref LambdaS3Key
+
+      Timeout: 30
+
+      MemorySize: 128
+
+
+  # -------------------------------------------------------
+  # IAM ROLE FOR GLUE
+  # -------------------------------------------------------
+
+  GlueExecutionRole:
+    Type: AWS::IAM::Role
+
+    Properties:
+      RoleName: 'DevOpsGlueRole'
+
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+
+
+  # -------------------------------------------------------
+  # GLUE PYTHON SHELL JOB
+  # -------------------------------------------------------
+
+  TestGlueJob:
+    Type: AWS::Glue::Job
+
+    Properties:
+      Name: 'TestGlueJob'
+
+      Role: !GetAtt GlueExecutionRole.Arn
+
+      Command:
+        Name: pythonshell
+
+        PythonVersion: '3.9'
+
+        ScriptLocation: !Sub >
+          s3://test-cloudformationtemplate/${GlueS3Key}
+
+      MaxCapacity: 0.0625
+
+      Timeout: 10
+
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+
+Outputs:
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref TestLambdaFunction
+
+  LambdaFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt TestLambdaFunction.Arn
+
+  GlueJobName:
+    Description: Glue job name
+    Value: !Ref TestGlueJob
+
+  
