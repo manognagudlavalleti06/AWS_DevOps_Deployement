@@ -6,6 +6,11 @@ Description: >
 
 Parameters:
 
+  S3BucketName:
+    Type: String
+    Default: test-cloudformationtemplate
+    Description: Name of the S3 bucket that contains the Lambda ZIP and Glue script
+
   LambdaS3Key:
     Type: String
     Default: lambda/app.zip
@@ -59,7 +64,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
 
       Code:
-        S3Bucket: test-cloudformationtemplate
+        S3Bucket: !Ref S3BucketName
         S3Key: !Ref LambdaS3Key
 
       Timeout: 30
@@ -91,6 +96,19 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
 
+      Policies:
+        - PolicyName: GlueS3AccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${S3BucketName}
+                  - !Sub arn:aws:s3:::${S3BucketName}/*
+
 
   # -------------------------------------------------------
   # GLUE PYTHON SHELL JOB
@@ -110,7 +128,7 @@ Resources:
         PythonVersion: '3.9'
 
         ScriptLocation: !Sub >
-          s3://test-cloudformationtemplate/${GlueS3Key}
+          s3://${S3BucketName}/${GlueS3Key}
 
       MaxCapacity: 0.0625
 
