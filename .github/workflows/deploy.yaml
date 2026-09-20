@@ -68,8 +68,8 @@ jobs:
 
       - name: Upload Glue script
         run: |
-          aws s3 cp test_glue/glue.py \
-            s3://${S3_BUCKET}/glue/glue.py
+          aws s3 cp test_glue/TestGlueJob.py \
+            s3://${S3_BUCKET}/glue/TestGlueJob.py
 
 
       # --------------------------------------------------

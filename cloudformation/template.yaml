@@ -13,7 +13,7 @@ Parameters:
 
   GlueS3Key:
     Type: String
-    Default: glue/glue.py
+    Default: glue/TestGlueJob.py
     Description: S3 key of the Glue Python script
 
 
