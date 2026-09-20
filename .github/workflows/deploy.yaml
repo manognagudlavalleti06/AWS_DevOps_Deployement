@@ -13,6 +13,8 @@ env:
   AWS_REGION: ap-south-1
   S3_BUCKET: test-cloudformationtemplate
   STACK_NAME: DevOps-Lambda-Glue-Stack
+  LAMBDA_S3_KEY: lambda/app.zip
+  GLUE_S3_KEY: glue/TestGlueJob.py
 
 jobs:
 
@@ -59,7 +61,7 @@ jobs:
       - name: Upload Lambda package
         run: |
           aws s3 cp app.zip \
-            s3://${S3_BUCKET}/lambda/app.zip
+            s3://${S3_BUCKET}/${LAMBDA_S3_KEY}
 
 
       # --------------------------------------------------
@@ -69,7 +71,7 @@ jobs:
       - name: Upload Glue script
         run: |
           aws s3 cp test_glue/glue.py \
-            s3://${S3_BUCKET}/glue/TestGlueJob.py
+            s3://${S3_BUCKET}/${GLUE_S3_KEY}
 
 
       # --------------------------------------------------
@@ -92,8 +94,9 @@ jobs:
             --template-file cloudformation/template.yaml \
             --stack-name ${STACK_NAME} \
             --parameter-overrides \
-              LambdaS3Key=lambda/app.zip \
-              GlueS3Key=glue/TestGlueJob.py \
+              S3BucketName=${S3_BUCKET} \
+              LambdaS3Key=${LAMBDA_S3_KEY} \
+              GlueS3Key=${GLUE_S3_KEY} \
             --capabilities CAPABILITY_NAMED_IAM
 
       # --------------------------------------------------
